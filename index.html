@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PS2 — Structural Intelligence System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2229;
+    --accent: #4fffb0;
+    --accent2: #ff6b35;
+    --warn: #ffd166;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --load: #4fffb0;
+    --partition: #4488ff;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .logo {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+  .logo span { color: var(--muted); }
+  .status-bar {
+    display: flex;
+    gap: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .status-bar .val { color: var(--text); margin-left: 4px; }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section h3 {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Controls */
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .control-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    outline: none;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin-top: 6px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Wall list */
+  .wall-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .wall-list::-webkit-scrollbar { width: 4px; }
+  .wall-list::-webkit-scrollbar-track { background: transparent; }
+  .wall-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .wall-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .wall-item:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
+  .wall-item.selected { background: rgba(79,255,176,0.06); border-color: rgba(79,255,176,0.3); }
+
+  .wall-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .wall-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .wall-type-badge {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .badge-load { background: rgba(79,255,176,0.12); color: var(--accent); }
+  .badge-part { background: rgba(68,136,255,0.12); color: var(--partition); }
+
+  .wall-length {
+    font-size: 11px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .wall-top-mat {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .detail-panel h3 {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .detail-empty {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-style: italic;
+  }
+  .mat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .mat-rank {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    width: 16px;
+  }
+  .mat-name {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    flex: 1;
+  }
+  .mat-score-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent);
+    min-width: 4px;
+  }
+  .mat-score-val {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    width: 28px;
+    text-align: right;
+  }
+  .explanation-text {
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  /* ── 3D Canvas ── */
+  #canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #three-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* HUD overlay */
+  .hud {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .hud-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .hud-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .legend {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+  .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .legend-row:last-child { margin-bottom: 0; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 5;
+    transition: opacity 0.4s;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+  .loading-bar {
+    width: 200px; height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .loading-fill {
+    height: 100%;
+    background: var(--accent);
+    animation: load 1.5s ease-in-out infinite;
+  }
+  @keyframes load {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PS2 <span>//</span> STRUCTURAL INTELLIGENCE SYSTEM</div>
+  <div class="status-bar">
+    <span>WALLS <span class="val" id="hdr-walls">—</span></span>
+    <span>LOAD-BEARING <span class="val" id="hdr-lb">—</span></span>
+    <span>PARTITION <span class="val" id="hdr-pt">—</span></span>
+    <span>HEIGHT <span class="val">3.0m</span></span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>View Controls</h3>
+      <div class="control-row">
+        <span class="control-label">Load-bearing walls</span>
+        <button class="toggle on" id="tog-load" onclick="toggleLayer('load')"></button>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Partition walls</span>
+        <button class="toggle on" id="tog-part" onclick="toggleLayer('part')"></button>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Floor slab</span>
+        <button class="toggle on" id="tog-slab" onclick="toggleLayer('slab')"></button>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Grid</span>
+        <button class="toggle on" id="tog-grid" onclick="toggleLayer('grid')"></button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="control-label" style="margin-bottom:6px">Wall opacity</div>
+        <input type="range" min="20" max="100" value="90" oninput="setOpacity(this.value/100)">
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="display:flex;align-items:center;justify-content:space-between">
+      <h3 style="margin-bottom:0">Walls</h3>
+      <span id="wall-count" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">0</span>
+    </div>
+
+    <div class="wall-list" id="wall-list"></div>
+
+    <div class="detail-panel" id="detail-panel">
+      <h3>Material Analysis</h3>
+      <div class="detail-empty" id="detail-empty">Select a wall to view recommendations</div>
+      <div id="detail-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 3D Canvas -->
+  <div id="canvas-wrap">
+    <div class="loading-overlay" id="loading">
+      <div class="loading-text">INITIALISING 3D ENGINE</div>
+      <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="legend">
+      <div class="legend-row"><div class="legend-dot" style="background:#4fffb0"></div> Load-bearing</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#4488ff"></div> Partition</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ff6b35"></div> Selected</div>
+    </div>
+
+    <div class="hud">
+      <button class="hud-btn" onclick="resetCamera()">Reset view</button>
+      <button class="hud-btn" onclick="setView('top')">Top view</button>
+      <button class="hud-btn" onclick="setView('front')">Front view</button>
+      <button class="hud-btn" onclick="loadFromFile()">Load JSON</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── DEFAULT DATA (used when no ps2_output.json is loaded) ──────────────────
+const DEFAULT_DATA = [
+  {wall_id:1, wall:{x1:50,y1:50,x2:650,y2:50,length_m:12.0,wall_type:"load_bearing"},
+   recommendations:[{material:"RCC",score:3.25,cost:"High",strength:"Very High"},{material:"Steel Frame",score:3.25,cost:"High",strength:"Very High"},{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"}],
+   explanation:"RCC is recommended for this outer load-bearing wall (span: 12m) because its Very High strength rating suits the structural demands, with a tradeoff score of 3.25 reflecting its high cost balanced against durability."},
+  {wall_id:2, wall:{x1:650,y1:50,x2:650,y2:450,length_m:8.0,wall_type:"load_bearing"},
+   recommendations:[{material:"Red Brick",score:3.0,cost:"Medium",strength:"High"},{material:"RCC",score:3.25,cost:"High",strength:"Very High"},{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"}],
+   explanation:"Red Brick is recommended for the east outer wall (8m span) for its high strength at medium cost, ideal for a standard load-bearing wall of this length."},
+  {wall_id:3, wall:{x1:50,y1:450,x2:650,y2:450,length_m:12.0,wall_type:"load_bearing"},
+   recommendations:[{material:"RCC",score:3.25,cost:"High",strength:"Very High"},{material:"Steel Frame",score:3.25,cost:"High",strength:"Very High"},{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"}],
+   explanation:"RCC is recommended for the south outer wall (12m span) due to its very high strength, suitable for long spans under heavy load."},
+  {wall_id:4, wall:{x1:50,y1:50,x2:50,y2:450,length_m:8.0,wall_type:"load_bearing"},
+   recommendations:[{material:"Red Brick",score:3.0,cost:"Medium",strength:"High"},{material:"RCC",score:3.25,cost:"High",strength:"Very High"},{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"}],
+   explanation:"Red Brick suits the west outer wall with its 8m span, offering a good strength-cost balance for perimeter load-bearing walls."},
+  {wall_id:5, wall:{x1:300,y1:50,x2:300,y2:250,length_m:4.0,wall_type:"partition"},
+   recommendations:[{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"},{material:"AAC Blocks",score:2.75,cost:"Low",strength:"Medium"},{material:"Hollow Concrete",score:2.5,cost:"Low",strength:"Medium"}],
+   explanation:"Fly Ash Brick is recommended for this bedroom partition wall (4m span) — it offers high strength at low cost, ideal for non-structural interior walls."},
+  {wall_id:6, wall:{x1:50,y1:250,x2:300,y2:250,length_m:5.0,wall_type:"partition"},
+   recommendations:[{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"},{material:"AAC Blocks",score:2.75,cost:"Low",strength:"Medium"},{material:"Hollow Concrete",score:2.5,cost:"Low",strength:"Medium"}],
+   explanation:"Fly Ash Brick is the top pick for the horizontal room divider (5m), balancing cost and strength well for a partition of this length."},
+  {wall_id:7, wall:{x1:300,y1:200,x2:650,y2:200,length_m:7.0,wall_type:"partition"},
+   recommendations:[{material:"AAC Blocks",score:2.75,cost:"Low",strength:"Medium"},{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"},{material:"Hollow Concrete",score:2.5,cost:"Low",strength:"Medium"}],
+   explanation:"AAC Blocks work well for this kitchen/laundry divider (7m) — lightweight, thermally efficient, and cost-effective for long partition walls."},
+  {wall_id:8, wall:{x1:480,y1:200,x2:480,y2:450,length_m:5.0,wall_type:"partition"},
+   recommendations:[{material:"Fly Ash Brick",score:3.0,cost:"Low",strength:"High"},{material:"AAC Blocks",score:2.75,cost:"Low",strength:"Medium"},{material:"Hollow Concrete",score:2.5,cost:"Low",strength:"Medium"}],
+   explanation:"Fly Ash Brick is recommended for the bathroom divider (5m) due to its moisture durability and good strength at low cost."},
+];
+
+// ── THREE.JS SETUP ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('three-canvas');
+const wrap   = document.getElementById('canvas-wrap');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.setClearColor(0x0a0c10, 1);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 10, 5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+scene.add(new THREE.HemisphereLight(0x4488ff, 0x0a0c10, 0.3));
+
+// OrbitControls (manual lightweight implementation)
+let isDragging = false, lastX = 0, lastY = 0;
+let theta = -Math.PI/4, phi = Math.PI/3, radius = 25;
+let targetX = 0, targetZ = 0;
+
+canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  if (e.buttons === 1) { theta -= dx * 0.01; phi = Math.max(0.1, Math.min(Math.PI/2 - 0.05, phi - dy * 0.01)); }
+  if (e.buttons === 2) { targetX -= dx * 0.05; targetZ -= dy * 0.05; }
+  lastX = e.clientX; lastY = e.clientY;
+  updateCamera();
+});
+canvas.addEventListener('wheel', e => { radius = Math.max(5, Math.min(80, radius + e.deltaY * 0.05)); updateCamera(); });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function updateCamera() {
+  camera.position.set(
+    targetX + radius * Math.sin(theta) * Math.sin(phi),
+    radius * Math.cos(phi),
+    targetZ + radius * Math.cos(theta) * Math.sin(phi)
+  );
+  camera.lookAt(targetX, 0, targetZ);
+}
+updateCamera();
+
+// ── SCENE OBJECTS ────────────────────────────────────────────────────────────
+const layers = { load: [], part: [], slab: [], grid: [] };
+const wallMeshes = [];
+let selectedIdx = -1;
+
+const MAT_LOAD = new THREE.MeshLambertMaterial({ color: 0x4fffb0, transparent: true, opacity: 0.9 });
+const MAT_PART = new THREE.MeshLambertMaterial({ color: 0x4488ff, transparent: true, opacity: 0.9 });
+const MAT_SEL  = new THREE.MeshLambertMaterial({ color: 0xff6b35, transparent: true, opacity: 1.0 });
+
+const WALL_H = 3.0;
+const SCALE  = 0.05; // px to meters conversion
+
+function buildScene(data) {
+  // Clear previous
+  wallMeshes.forEach(m => scene.remove(m));
+  wallMeshes.length = 0;
+  Object.values(layers).forEach(arr => arr.length = 0);
+
+  // Compute center for camera target
+  let cx = 0, cz = 0, count = 0;
+  data.forEach(entry => {
+    const w = entry.wall;
+    cx += (w.x1 + w.x2) / 2; cz += (w.y1 + w.y2) / 2; count++;
+  });
+  if (count) { targetX = cx / count * SCALE; targetZ = cz / count * SCALE; }
+
+  // Floor slab
+  const floorGeo = new THREE.PlaneGeometry(700 * SCALE, 500 * SCALE);
+  const floorMat = new THREE.MeshLambertMaterial({ color: 0x1a1f2a });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(targetX, -0.05, targetZ);
+  floor.receiveShadow = true;
+  scene.add(floor);
+  layers.slab.push(floor);
+
+  // Grid
+  const grid = new THREE.GridHelper(700 * SCALE, 35, 0x1e2229, 0x1e2229);
+  grid.position.set(targetX, 0, targetZ);
+  scene.add(grid);
+  layers.grid.push(grid);
+
+  // Walls
+  data.forEach((entry, idx) => {
+    const w = entry.wall;
+    const isLoad = w.wall_type === 'load_bearing';
+
+    const x1 = w.x1 * SCALE, z1 = w.y1 * SCALE;
+    const x2 = w.x2 * SCALE, z2 = w.y2 * SCALE;
+
+    const len = Math.sqrt((x2-x1)**2 + (z2-z1)**2);
+    if (len < 0.01) return;
+
+    const thick = isLoad ? 0.25 : 0.12;
+    const geo = new THREE.BoxGeometry(len, WALL_H, thick);
+    const mat = isLoad ? MAT_LOAD.clone() : MAT_PART.clone();
+    const mesh = new THREE.Mesh(geo, mat);
+
+    const mx = (x1 + x2) / 2;
+    const mz = (z1 + z2) / 2;
+    const angle = Math.atan2(z2 - z1, x2 - x1);
+
+    mesh.position.set(mx, WALL_H / 2, mz);
+    mesh.rotation.y = -angle;
+    mesh.castShadow = true;
+    mesh.userData = { idx, entry, isLoad };
+
+    scene.add(mesh);
+    wallMeshes.push(mesh);
+    layers[isLoad ? 'load' : 'part'].push(mesh);
+  });
+
+  // Top edge wireframe on walls
+  wallMeshes.forEach(mesh => {
+    const edges = new THREE.EdgesGeometry(mesh.geometry);
+    const line  = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08 }));
+    mesh.add(line);
+  });
+
+  updateCamera();
+  updateHeader(data);
+  buildWallList(data);
+}
+
+// ── WALL CLICK (raycasting) ───────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2();
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(wallMeshes);
+  if (hits.length) selectWall(hits[0].object.userData.idx);
+});
+
+function selectWall(idx) {
+  selectedIdx = idx;
+  wallMeshes.forEach(m => {
+    m.material.color.set(m.userData.idx === idx ? 0xff6b35
+      : m.userData.isLoad ? 0x4fffb0 : 0x4488ff);
+  });
+  document.querySelectorAll('.wall-item').forEach(el => {
+    el.classList.toggle('selected', +el.dataset.idx === idx);
+  });
+  const el = document.querySelector(`.wall-item[data-idx="${idx}"]`);
+  if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  showDetail(wallMeshes[idx].userData.entry);
+}
+
+// ── UI BUILDERS ───────────────────────────────────────────────────────────────
+function buildWallList(data) {
+  const list = document.getElementById('wall-list');
+  list.innerHTML = '';
+  document.getElementById('wall-count').textContent = data.length;
+
+  data.forEach((entry, idx) => {
+    const w    = entry.wall;
+    const top  = entry.recommendations[0];
+    const isLB = w.wall_type === 'load_bearing';
+    const div  = document.createElement('div');
+    div.className = 'wall-item';
+    div.dataset.idx = idx;
+    div.innerHTML = `
+      <div class="wall-item-header">
+        <span class="wall-id">WALL ${entry.wall_id}</span>
+        <span class="wall-type-badge ${isLB ? 'badge-load' : 'badge-part'}">${isLB ? 'load-bearing' : 'partition'}</span>
+      </div>
+      <div class="wall-length">${w.length_m}m span</div>
+      <div class="wall-top-mat">▶ ${top.material} (${top.score})</div>`;
+    div.onclick = () => selectWall(idx);
+    list.appendChild(div);
+  });
+}
+
+function showDetail(entry) {
+  document.getElementById('detail-empty').style.display = 'none';
+  const c = document.getElementById('detail-content');
+  c.style.display = 'block';
+  const maxScore = Math.max(...entry.recommendations.map(r => r.score));
+  c.innerHTML = entry.recommendations.map((r, i) => `
+    <div class="mat-row">
+      <span class="mat-rank">#${i+1}</span>
+      <span class="mat-name">${r.material}</span>
+      <div class="mat-score-bar" style="width:${(r.score/maxScore)*80}px; background:${i===0?'var(--accent)':'var(--border)'}"></div>
+      <span class="mat-score-val">${r.score}</span>
+    </div>`).join('') +
+    (entry.explanation
+      ? `<div class="explanation-text">${entry.explanation}</div>`
+      : '');
+}
+
+function updateHeader(data) {
+  const lb = data.filter(e => e.wall.wall_type === 'load_bearing').length;
+  document.getElementById('hdr-walls').textContent = data.length;
+  document.getElementById('hdr-lb').textContent    = lb;
+  document.getElementById('hdr-pt').textContent    = data.length - lb;
+}
+
+// ── CONTROLS ─────────────────────────────────────────────────────────────────
+function toggleLayer(key) {
+  const btn = document.getElementById('tog-' + key);
+  btn.classList.toggle('on');
+  const visible = btn.classList.contains('on');
+  layers[key].forEach(m => m.visible = visible);
+}
+
+function setOpacity(val) {
+  wallMeshes.forEach(m => m.material.opacity = val);
+}
+
+function resetCamera() {
+  theta = -Math.PI/4; phi = Math.PI/3; radius = 25;
+  updateCamera();
+}
+
+function setView(v) {
+  if (v === 'top')   { phi = 0.05; updateCamera(); }
+  if (v === 'front') { phi = Math.PI/2 - 0.05; theta = 0; updateCamera(); }
+}
+
+function loadFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        buildScene(data);
+      } catch(err) { alert('Invalid JSON: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ── RENDER LOOP ───────────────────────────────────────────────────────────────
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+setTimeout(() => {
+  buildScene(DEFAULT_DATA);
+  document.getElementById('loading').classList.add('hidden');
+}, 800);
+</script>
+</body>
+</html>
